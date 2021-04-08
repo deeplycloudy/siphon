@@ -1,0 +1,16 @@
+
+:orphan:
+
+.. _sphx_glr_examples_ncss_sg_execution_times:
+
+Computation times
+=================
+**00:06.669** total execution time for **examples_ncss** files:
+
++---------------------------------------------------------------------------------------------+-----------+--------+
+| :ref:`sphx_glr_examples_ncss_NCSS_Timeseries_Examples.py` (``NCSS_Timeseries_Examples.py``) | 00:02.503 | 0.0 MB |
++---------------------------------------------------------------------------------------------+-----------+--------+
+| :ref:`sphx_glr_examples_ncss_NCSS_Cartopy_Example.py` (``NCSS_Cartopy_Example.py``)         | 00:02.242 | 0.0 MB |
++---------------------------------------------------------------------------------------------+-----------+--------+
+| :ref:`sphx_glr_examples_ncss_NCSS_Example.py` (``NCSS_Example.py``)                         | 00:01.923 | 0.0 MB |
++---------------------------------------------------------------------------------------------+-----------+--------+
