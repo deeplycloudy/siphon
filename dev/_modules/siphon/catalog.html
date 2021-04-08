@@ -211,7 +211,19 @@
 
 
 <div class="viewcode-block" id="DatasetCollection"><a class="viewcode-back" href="../../api/catalog.html#siphon.catalog.DatasetCollection">[docs]</a><span class="k">class</span> <span class="nc">DatasetCollection</span><span class="p">(</span><span class="n">IndexableMapping</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extend ``IndexableMapping`` to allow datetime-based filter queries.&quot;&quot;&quot;</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Extend ``IndexableMapping`` to allow datetime-based filter queries.</span>
+
+<span class="sd">    Indexing works like a dictionary. The dataset name (&#39;my_data.nc&#39;, a string) is the key,</span>
+<span class="sd">    and the value returned is an instance of ``Dataset``. Positional indexing</span>
+<span class="sd">    (e.g., [0]) is another valid method of indexing.</span>
+
+<span class="sd">    ``DatasetCollection`` is commonly encountered as the ``datasets`` attribute of a</span>
+<span class="sd">    ``TDSCatalog``. If a ``regex`` in ``filter_time_nearest`` or ```filter_time_range` does not</span>
+<span class="sd">    provide sufficient flexibility, or the ``TDSCatalog`` does not provide accurate times,</span>
+<span class="sd">    iterating over ``datasets`` can be useful as part implementing a custom filter. For example,</span>
+<span class="sd">    in ``for ds in catalog.datasets: print(ds)``, ``ds`` will be the dataset name, and ``ds``</span>
+<span class="sd">    can be used to implement further filtering logic.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">default_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?P&lt;year&gt;\d</span><span class="si">{4}</span><span class="s1">)(?P&lt;month&gt;[01]\d)(?P&lt;day&gt;[0123]\d)_&#39;</span>
                                <span class="sa">r</span><span class="s1">&#39;(?P&lt;hour&gt;[012]\d)(?P&lt;minute&gt;[0-5]\d)&#39;</span><span class="p">)</span>
@@ -1054,7 +1066,7 @@
     <p>
         &#169; Copyright 2018, Siphon Contributors.
       <span class="lastupdated">
-        Last updated on Apr 08, 2021 at 20:44:28.
+        Last updated on Apr 08, 2021 at 21:17:10.
       </span>
 
     </p>

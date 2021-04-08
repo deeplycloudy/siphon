@@ -540,6 +540,15 @@ catalog.</p>
 <dt id="siphon.catalog.DatasetCollection">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">siphon.catalog.</span></code><code class="sig-name descname"><span class="pre">DatasetCollection</span></code><a class="reference internal" href="../_modules/siphon/catalog.html#DatasetCollection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#siphon.catalog.DatasetCollection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend <code class="docutils literal notranslate"><span class="pre">IndexableMapping</span></code> to allow datetime-based filter queries.</p>
+<p>Indexing works like a dictionary. The dataset name (‘my_data.nc’, a string) is the key,
+and the value returned is an instance of <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. Positional indexing
+(e.g., [0]) is another valid method of indexing.</p>
+<p><code class="docutils literal notranslate"><span class="pre">DatasetCollection</span></code> is commonly encountered as the <code class="docutils literal notranslate"><span class="pre">datasets</span></code> attribute of a
+<code class="docutils literal notranslate"><span class="pre">TDSCatalog</span></code>. If a <code class="docutils literal notranslate"><span class="pre">regex</span></code> in <code class="docutils literal notranslate"><span class="pre">filter_time_nearest</span></code> or <code class="docutils literal notranslate"><span class="pre">`filter_time_range`</span> <span class="pre">does</span> <span class="pre">not</span>
+<span class="pre">provide</span> <span class="pre">sufficient</span> <span class="pre">flexibility,</span> <span class="pre">or</span> <span class="pre">the</span> <span class="pre">``TDSCatalog</span></code> does not provide accurate times,
+iterating over <code class="docutils literal notranslate"><span class="pre">datasets</span></code> can be useful as part implementing a custom filter. For example,
+in <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">ds</span> <span class="pre">in</span> <span class="pre">catalog.datasets:</span> <span class="pre">print(ds)</span></code>, <code class="docutils literal notranslate"><span class="pre">ds</span></code> will be the dataset name, and <code class="docutils literal notranslate"><span class="pre">ds</span></code>
+can be used to implement further filtering logic.</p>
 <dl class="py method">
 <dt id="siphon.catalog.DatasetCollection.filter_time_nearest">
 <code class="sig-name descname"><span class="pre">filter_time_nearest</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strptime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/siphon/catalog.html#DatasetCollection.filter_time_nearest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#siphon.catalog.DatasetCollection.filter_time_nearest" title="Permalink to this definition">¶</a></dt>
@@ -798,7 +807,7 @@ but not always.</p>
     <p>
         &#169; Copyright 2018, Siphon Contributors.
       <span class="lastupdated">
-        Last updated on Apr 08, 2021 at 20:44:28.
+        Last updated on Apr 08, 2021 at 21:17:10.
       </span>
 
     </p>
