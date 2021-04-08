@@ -14,7 +14,8 @@ import pandas as pd
 from .._tools import get_wind_components
 from ..http_util import HTTPEndPoint
 
-warnings.filterwarnings('ignore', 'Pandas doesn\'t allow columns to be created', UserWarning)
+
+warnings.filterwarnings('ignore', "Pandas doesn't allow columns to be created", UserWarning)
 
 
 class WyomingUpperAir(HTTPEndPoint):
@@ -93,6 +94,7 @@ class WyomingUpperAir(HTTPEndPoint):
         latitude = float(lines[4].split(':')[1].strip())
         longitude = float(lines[5].split(':')[1].strip())
         elevation = float(lines[6].split(':')[1].strip())
+        pw = float(lines[-1].split(':')[1].strip())
 
         df['station'] = station
         df['station_number'] = station_number
@@ -100,6 +102,7 @@ class WyomingUpperAir(HTTPEndPoint):
         df['latitude'] = latitude
         df['longitude'] = longitude
         df['elevation'] = elevation
+        df['pw'] = pw
 
         # Add unit dictionary
         df.units = {'pressure': 'hPa',
@@ -115,7 +118,8 @@ class WyomingUpperAir(HTTPEndPoint):
                     'time': None,
                     'latitude': 'degrees',
                     'longitude': 'degrees',
-                    'elevation': 'meter'}
+                    'elevation': 'meter',
+                    'pw': 'millimeter'}
         return df
 
     def _get_data_raw(self, time, site_id):
@@ -139,7 +143,7 @@ class WyomingUpperAir(HTTPEndPoint):
 
         resp = self.get_path(path)
         # See if the return is valid, but has no data
-        if resp.text.find('Can\'t') != -1:
+        if resp.text.find("Can't") != -1:
             raise ValueError(
                 'No data available for {time:%Y-%m-%d %HZ} '
                 'for station {stid}.'.format(time=time, stid=site_id))

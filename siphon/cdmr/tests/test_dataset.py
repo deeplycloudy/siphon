@@ -23,10 +23,10 @@ class TestDataset(object):
     """Test basic Dataset functionality."""
 
     @classmethod
-    @recorder.use_cassette('rap_ncstream_header')
     def setup_class(cls):
         """Set up all tests to use the same url."""
-        cls.ds = Dataset(get_fixed_url())
+        with recorder.use_cassette('rap_ncstream_header'):
+            cls.ds = Dataset(get_fixed_url())
 
     def test_str_attr(self):
         """Test that we properly read a string attribute."""
@@ -112,7 +112,7 @@ def test_tds5_attr():
     """Test handling TDS 5's new attributes."""
     ds = Dataset('http://localhost:8080/thredds/cdmremote/nc4/vlen/tst_vl.nc4')
     var = ds.variables['var']
-    assert getattr(var, '_ChunkSizes') == 3
+    assert var._ChunkSizes == 3
 
 
 @recorder.use_cassette('tds5_vlen')
@@ -391,12 +391,12 @@ class TestIndexing(object):
     """Test indexing on a variable makes the correct request."""
 
     @classmethod
-    @recorder.use_cassette('rap_ncstream_header')
     def setup_class(cls):
         """Set up tests to point to a common variable."""
-        url = get_fixed_url()
-        ds = Dataset(url)
-        cls.var = ds.variables['Temperature_isobaric']
+        with recorder.use_cassette('rap_ncstream_header'):
+            url = get_fixed_url()
+            ds = Dataset(url)
+            cls.var = ds.variables['Temperature_isobaric']
 
     @recorder.use_cassette('rap_ncstream_slices')
     def test_slices(self):

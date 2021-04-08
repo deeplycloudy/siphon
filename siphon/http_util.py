@@ -1,13 +1,15 @@
-# Copyright (c) 2013-2015 Siphon Contributors.
+# Copyright (c) 2013-2019 Siphon Contributors.
 # Distributed under the terms of the BSD 3-Clause License.
 # SPDX-License-Identifier: BSD-3-Clause
 """Utility code to support making requests using HTTP."""
 
 from collections import OrderedDict
 from datetime import datetime, timedelta, tzinfo
+import gzip
 from io import BytesIO
 from itertools import chain
 import posixpath
+import warnings
 try:
     from urllib.parse import urlencode, urljoin  # noqa
 except ImportError:
@@ -87,7 +89,7 @@ class HTTPSessionManager(object):
             setattr(ret, k, v)
         return ret
 
-    def urlopen(self, url, **kwargs):
+    def urlopen(self, url, decompress=False, **kwargs):
         """GET a file-like object for a URL using HTTP.
 
         This is a thin wrapper around :meth:`requests.Session.get` that returns a file-like
@@ -111,7 +113,10 @@ class HTTPSessionManager(object):
         :meth:`requests.Session.get`
 
         """
-        return BytesIO(self.create_session().get(url, **kwargs).content)
+        fobj = BytesIO(self.create_session().get(url, **kwargs).content)
+        if decompress:
+            fobj = gzip.GzipFile(fileobj=fobj)
+        return fobj
 
 
 session_manager = HTTPSessionManager()
@@ -317,6 +322,9 @@ class DataQuery(object):
             Returns self for chaining calls
 
         """
+        if start > end:
+            warnings.warn('The provided start time comes after the end time. No data will '
+                          'be returned.', UserWarning)
         self._set_query(self.time_query, time_start=self._format_time(start),
                         time_end=self._format_time(end))
         return self

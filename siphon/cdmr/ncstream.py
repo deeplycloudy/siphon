@@ -46,10 +46,10 @@ def read_ncstream_data(fobj):
         # Again endian isn't coded properly
         dt = data_type_to_numpy(data.dataType).newbyteorder('>')
         if data.vdata:
-            return np.array([np.frombuffer(b, dtype=dt) for b in blocks])
+            return np.array([np.frombuffer(b, dtype=dt) for b in blocks], dtype=object)
         else:
             return np.array(blocks, dtype=dt)
-    elif data.dataType in _dtypeLookup:
+    elif data.dataType in _dtype_lookup:
         log.debug('Reading array data')
         bin_data = read_block(fobj)
         log.debug('Binary data: %s', bin_data)
@@ -218,7 +218,7 @@ def process_vlen(data_header, array):
     """
     source = iter(array)
     return np.array([np.fromiter(itertools.islice(source, size), dtype=array.dtype)
-                     for size in data_header.vlens])
+                     for size in data_header.vlens], dtype=object)
 
 
 def datacol_to_array(datacol):
@@ -238,9 +238,9 @@ def datacol_to_array(datacol):
 
     """
     if datacol.dataType == stream.STRING:
-        arr = np.array(datacol.stringdata, dtype=np.object)
+        arr = np.array(datacol.stringdata, dtype=object)
     elif datacol.dataType == stream.OPAQUE:
-        arr = np.array(datacol.opaquedata, dtype=np.object)
+        arr = np.array(datacol.opaquedata, dtype=object)
     elif datacol.dataType == stream.STRUCTURE:
         members = OrderedDict((mem.name, datacol_to_array(mem))
                               for mem in datacol.structdata.memberData)
@@ -266,9 +266,9 @@ def datacol_to_array(datacol):
                         arr.size, datacol.nelems)
         if datacol.isVlen:
             arr = process_vlen(datacol, arr)
-            if arr.dtype == np.object_:
+            try:
                 arr = reshape_array(datacol, arr)
-            else:
+            except ValueError:
                 # In this case, the array collapsed, need different resize that
                 # correctly sizes from elements
                 shape = tuple(r.size for r in datacol.section.range) + (datacol.vlens[0],)
@@ -299,17 +299,17 @@ def reshape_array(data_header, array):
 
 # STRUCTURE = 8;
 # SEQUENCE = 9;
-_dtypeLookup = {stream.CHAR: 'S1', stream.BYTE: 'b', stream.SHORT: 'i2',
-                stream.INT: 'i4', stream.LONG: 'i8', stream.FLOAT: 'f4',
-                stream.DOUBLE: 'f8', stream.STRING: 'O',
-                stream.ENUM1: 'B', stream.ENUM2: 'u2', stream.ENUM4: 'u4',
-                stream.OPAQUE: 'O', stream.UBYTE: 'B', stream.USHORT: 'u2',
-                stream.UINT: 'u4', stream.ULONG: 'u8'}
+_dtype_lookup = {stream.CHAR: 'S1', stream.BYTE: 'b', stream.SHORT: 'i2',
+                 stream.INT: 'i4', stream.LONG: 'i8', stream.FLOAT: 'f4',
+                 stream.DOUBLE: 'f8', stream.STRING: 'O',
+                 stream.ENUM1: 'B', stream.ENUM2: 'u2', stream.ENUM4: 'u4',
+                 stream.OPAQUE: 'O', stream.UBYTE: 'B', stream.USHORT: 'u2',
+                 stream.UINT: 'u4', stream.ULONG: 'u8'}
 
 
 def data_type_to_numpy(datatype, unsigned=False):
     """Convert an ncstream datatype to a numpy one."""
-    basic_type = _dtypeLookup[datatype]
+    basic_type = _dtype_lookup[datatype]
 
     if datatype in (stream.STRING, stream.OPAQUE):
         return np.dtype(basic_type)
@@ -362,12 +362,12 @@ def unpack_variable(var):
     return data, dt, type_name
 
 
-_attrConverters = {stream.Attribute.BYTE: np.dtype('>b'),
-                   stream.Attribute.SHORT: np.dtype('>i2'),
-                   stream.Attribute.INT: np.dtype('>i4'),
-                   stream.Attribute.LONG: np.dtype('>i8'),
-                   stream.Attribute.FLOAT: np.dtype('>f4'),
-                   stream.Attribute.DOUBLE: np.dtype('>f8')}
+_attr_converters = {stream.Attribute.BYTE: np.dtype('>b'),
+                    stream.Attribute.SHORT: np.dtype('>i2'),
+                    stream.Attribute.INT: np.dtype('>i4'),
+                    stream.Attribute.LONG: np.dtype('>i8'),
+                    stream.Attribute.FLOAT: np.dtype('>f4'),
+                    stream.Attribute.DOUBLE: np.dtype('>f8')}
 
 
 def unpack_attribute(att):
@@ -382,14 +382,14 @@ def unpack_attribute(att):
         val = att.sdata
     elif att.dataType:  # Then a non-zero new data type
         val = np.frombuffer(att.data,
-                            dtype='>' + _dtypeLookup[att.dataType], count=att.len)
+                            dtype='>' + _dtype_lookup[att.dataType], count=att.len)
     elif att.type:  # Then non-zero old-data type0
         val = np.frombuffer(att.data,
-                            dtype=_attrConverters[att.type], count=att.len)
+                            dtype=_attr_converters[att.type], count=att.len)
     elif att.sdata:  # This leaves both 0, try old string
         val = att.sdata
     else:  # Assume new datatype is Char (0)
-        val = np.array(att.data, dtype=_dtypeLookup[att.dataType])
+        val = np.array(att.data, dtype=_dtype_lookup[att.dataType])
 
     if att.len == 1:
         val = val[0]

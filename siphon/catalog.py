@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2017 Siphon Contributors.
+# Copyright (c) 2013-2019 Siphon Contributors.
 # Distributed under the terms of the BSD 3-Clause License.
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -11,7 +11,8 @@ from collections import OrderedDict
 from datetime import datetime
 import logging
 import re
-import xml.etree.ElementTree as ET
+import warnings
+import xml.etree.ElementTree as ET  # noqa:N814
 try:
     from urlparse import urljoin, urlparse
 except ImportError:
@@ -43,8 +44,9 @@ class DatasetCollection(IndexableMapping):
     default_regex = re.compile(r'(?P<year>\d{4})(?P<month>[01]\d)(?P<day>[0123]\d)_'
                                r'(?P<hour>[012]\d)(?P<minute>[0-5]\d)')
 
-    def _get_datasets_with_times(self, regex):
+    def _get_datasets_with_times(self, regex, strptime=None):
         # Set the default regex if we don't have one
+        # If strptime is provided, pass the regex group named 'strptime' to strptime
         if regex is None:
             regex = self.default_regex
         else:
@@ -59,11 +61,17 @@ class DatasetCollection(IndexableMapping):
             if match:
                 found_date = True
                 date_parts = match.groupdict()
-                dt = datetime(int(date_parts.get('year', 0)), int(date_parts.get('month', 0)),
-                              int(date_parts.get('day', 0)), int(date_parts.get('hour', 0)),
-                              int(date_parts.get('minute', 0)),
-                              int(date_parts.get('second', 0)),
-                              int(date_parts.get('microsecond', 0)))
+                if strptime is not None:
+                    date_str = date_parts.get('strptime', 0)
+                    dt = datetime.strptime(date_str, strptime)
+                else:
+                    dt = datetime(int(date_parts.get('year', 0)),
+                                  int(date_parts.get('month', 0)),
+                                  int(date_parts.get('day', 0)),
+                                  int(date_parts.get('hour', 0)),
+                                  int(date_parts.get('minute', 0)),
+                                  int(date_parts.get('second', 0)),
+                                  int(date_parts.get('microsecond', 0)))
                 yield dt, self[ds]
 
         # If we never found any keys that match, we should let the user know that rather
@@ -71,8 +79,8 @@ class DatasetCollection(IndexableMapping):
         if not found_date:
             raise ValueError('No datasets with times found.')
 
-    def filter_time_nearest(self, time, regex=None):
-        """Filter keys for an item closest to the desired time.
+    def filter_time_nearest(self, time, regex=None, strptime=None):
+        r"""Filter keys for an item closest to the desired time.
 
         Loops over all keys in the collection and uses `regex` to extract and build
         `datetime`s. The collection of `datetime`s is compared to `start` and the value that
@@ -86,21 +94,28 @@ class DatasetCollection(IndexableMapping):
             The desired time
         regex : str, optional
             The regular expression to use to extract date/time information from the key. If
-            given, this should contain named groups: 'year', 'month', 'day', 'hour', 'minute',
-            'second', and 'microsecond', as appropriate. When a match is found, any of those
-            groups missing from the pattern will be assigned a value of 0. The default pattern
-            looks for patterns like: 20171118_2356.
+            given, this should contain either
+            1. named groups: 'year', 'month', 'day', 'hour', 'minute', 'second',
+            and 'microsecond', as appropriate. When a match is found, any of those groups
+            missing from the pattern will be assigned a value of 0. The default pattern looks
+            for patterns like: 20171118_2356.
+            or
+            2. a group named 'strptime' (e.g., r'_s(?P<strptime>\d{13})' for GOES-16 data)
+            to be parsed with strptime.
+        strptime : str, optional
+            the format string that corresponds to regex option (2) above. For example, GOES-16
+            data with a julian date matching the regex above is parsed with '%Y%j%H%M%S'.
 
         Returns
         -------
             The value with a time closest to that desired
 
         """
-        return min(self._get_datasets_with_times(regex),
+        return min(self._get_datasets_with_times(regex, strptime),
                    key=lambda i: abs((i[0] - time).total_seconds()))[-1]
 
-    def filter_time_range(self, start, end, regex=None):
-        """Filter keys for all items within the desired time range.
+    def filter_time_range(self, start, end, regex=None, strptime=None):
+        r"""Filter keys for all items within the desired time range.
 
         Loops over all keys in the collection and uses `regex` to extract and build
         `datetime`s. From the collection of `datetime`s, all values within `start` and `end`
@@ -115,17 +130,27 @@ class DatasetCollection(IndexableMapping):
             The end of the desired time range, inclusive
         regex : str, optional
             The regular expression to use to extract date/time information from the key. If
-            given, this should contain named groups: 'year', 'month', 'day', 'hour', 'minute',
-            'second', and 'microsecond', as appropriate. When a match is found, any of those
-            groups missing from the pattern will be assigned a value of 0. The default pattern
-            looks for patterns like: 20171118_2356.
+            given, this should contain either
+            1. named groups: 'year', 'month', 'day', 'hour', 'minute', 'second',
+            and 'microsecond', as appropriate. When a match is found, any of those groups
+            missing from the pattern will be assigned a value of 0. The default pattern looks
+            for patterns like: 20171118_2356.
+            or
+            2. a group named 'strptime' (e.g., r'_s(?P<strptime>\d{13})' for GOES-16 data)
+            to be parsed with strptime.
+        strptime : str, optional
+            the format string that corresponds to regex option (2) above. For example, GOES-16
+            data with a julian date matching the regex above is parsed with '%Y%j%H%M%S'.
 
         Returns
         -------
             All values corresponding to times within the specified range
 
         """
-        return [item[-1] for item in self._get_datasets_with_times(regex)
+        if start > end:
+            warnings.warn('The provided start time comes after the end time. No data will '
+                          'be returned.', UserWarning)
+        return [item[-1] for item in self._get_datasets_with_times(regex, strptime)
                 if start <= item[0] <= end]
 
     def __str__(self):
@@ -250,10 +275,10 @@ class TDSCatalog(object):
             The URL of a THREDDS client catalog
 
         """
-        session = session_manager.create_session()
+        self.session = session_manager.create_session()
 
         # get catalog.xml file
-        resp = session.get(catalog_url)
+        resp = self.session.get(catalog_url)
         resp.raise_for_status()
 
         # top level server url
@@ -267,7 +292,7 @@ class TDSCatalog(object):
             warnings.warn('URL {} returned HTML. Changing to: {}'.format(self.catalog_url,
                                                                          new_url))
             self.catalog_url = new_url
-            resp = session.get(self.catalog_url)
+            resp = self.session.get(self.catalog_url)
             resp.raise_for_status()
 
         # begin parsing the xml doc
@@ -327,6 +352,10 @@ class TDSCatalog(object):
         """Return a string representation of the catalog name."""
         return str(self.catalog_name)
 
+    def __del__(self):
+        """When TDSCatalog is deleted, close any open sessions."""
+        self.session.close()
+
     def _process_dataset(self, element):
         catalog_url = ''
         if 'urlPath' in element.attrib:
@@ -347,17 +376,17 @@ class TDSCatalog(object):
 
     def _process_datasets(self):
         # Need to use list (of keys) because we modify the dict while iterating
-        for dsName in list(self.datasets):
+        for ds_name in list(self.datasets):
             # check to see if dataset needs to have access urls created, if not,
             # remove the dataset
-            has_url_path = self.datasets[dsName].url_path is not None
+            has_url_path = self.datasets[ds_name].url_path is not None
             is_ds_with_access_elements_to_process = \
-                dsName in self.ds_with_access_elements_to_process
+                ds_name in self.ds_with_access_elements_to_process
             if has_url_path or is_ds_with_access_elements_to_process:
-                self.datasets[dsName].make_access_urls(
+                self.datasets[ds_name].make_access_urls(
                     self.base_tds_url, self.services, metadata=self.metadata)
             else:
-                self.datasets.pop(dsName)
+                self.datasets.pop(ds_name)
 
     @property
     def latest(self):
@@ -440,7 +469,8 @@ class Dataset(object):
 
     """
 
-    ncssServiceNames = (CaseInsensitiveStr('NetcdfSubset'), CaseInsensitiveStr('NetcdfServer'))
+    ncss_service_names = (CaseInsensitiveStr('NetcdfSubset'),
+                          CaseInsensitiveStr('NetcdfServer'))
 
     def __init__(self, element_node, catalog_url=''):
         """Initialize the Dataset object.
@@ -580,18 +610,36 @@ class Dataset(object):
             with open(filename, 'wb') as outfile:
                 outfile.write(infile.read())
 
-    def remote_open(self):
+    def remote_open(self, mode='b', encoding='ascii', errors='ignore'):
         """Open the remote dataset for random access.
 
         Get a file-like object for reading from the remote dataset, providing random access,
         similar to a local file.
+
+        Parameters
+        ----------
+        mode : 'b' or 't', optional
+            Mode with which to open the remote data; 'b' for binary, 't' for text. Defaults
+            to 'b'.
+
+        encoding : str, optional
+            If ``mode`` is text, the encoding to use to decode the binary data into text.
+            Defaults to 'ascii'.
+
+        errors : str, optional
+            If ``mode`` is text, the error handling behavior to pass to `bytes.decode`.
+            Defaults to 'ignore'.
 
         Returns
         -------
         A random access, file-like object
 
         """
-        return self.access_with_service('HTTPServer')
+        fobj = self.access_with_service('HTTPServer')
+        if mode == 't':
+            from io import StringIO
+            fobj = StringIO(fobj.read().decode(encoding, errors))
+        return fobj
 
     def remote_access(self, service=None, use_xarray=None):
         """Access the remote dataset.
@@ -637,15 +685,15 @@ class Dataset(object):
 
         """
         if service is None:
-            for serviceName in self.ncssServiceNames:
-                if serviceName in self.access_urls:
-                    service = serviceName
+            for service_name in self.ncss_service_names:
+                if service_name in self.access_urls:
+                    service = service_name
                     break
             else:
                 raise RuntimeError('Subset access is not available for this dataset.')
-        elif service not in self.ncssServiceNames:
+        elif service not in self.ncss_service_names:
             raise ValueError(service + ' is not a valid service for subset. Options are: '
-                             + ', '.join(self.ncssServiceNames))
+                             + ', '.join(self.ncss_service_names))
 
         return self.access_with_service(service)
 
@@ -684,14 +732,14 @@ class Dataset(object):
                     import xarray as xr
                     provider = xr.open_dataset
                 except ImportError:
-                    raise ImportError('xarray to be installed if `use_xarray` is True.')
+                    raise ImportError('xarray needs to be installed if `use_xarray` is True.')
             else:
                 try:
                     from netCDF4 import Dataset as NC4Dataset
                     provider = NC4Dataset
                 except ImportError:
                     raise ImportError('OPENDAP access needs netCDF4-python to be installed.')
-        elif service in self.ncssServiceNames:
+        elif service in self.ncss_service_names:
             from .ncss import NCSS
             provider = NCSS
         elif service == 'HTTPServer':
