@@ -48,9 +48,9 @@ class DatasetCollection(IndexableMapping):
     ``DatasetCollection`` is commonly encountered as the ``datasets`` attribute of a
     ``TDSCatalog``. If a ``regex`` in ``filter_time_nearest`` or ```filter_time_range` does not
     provide sufficient flexibility, or the ``TDSCatalog`` does not provide accurate times,
-    iterating over ``datasets`` can be useful as part implementing a custom filter. For example,
-    in ``for ds in catalog.datasets: print(ds)``, ``ds`` will be the dataset name, and ``ds``
-    can be used to implement further filtering logic.
+    iterating over ``datasets`` can be useful as part implementing a custom filter. For
+    example, in ``for ds in catalog.datasets: print(ds)``, ``ds`` will be the dataset name, and
+    ``ds`` can be used to implement further filtering logic.
     """
 
     default_regex = re.compile(r'(?P<year>\d{4})(?P<month>[01]\d)(?P<day>[0123]\d)_'
