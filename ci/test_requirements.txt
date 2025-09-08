@@ -1,4 +1,4 @@
-pytest==8.4.1
+pytest==8.4.2
 netCDF4==1.7.2
 coverage==7.10.6
 vcrpy==6.0.2
